@@ -138,7 +138,7 @@ export default function App() {
                     <span key={c.id} className="bg-red-700 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
                       {c.foto_url && (
                         <img src={c.foto_url} alt={c.nombre}
-                          className="w-5 h-5 rounded-full object-cover" />
+                          className="w-5 h-5 rounded-full object-cover object-top" />
                       )}
                       {c.nombre}
                     </span>
@@ -162,13 +162,16 @@ export default function App() {
                           : "border-gray-100 hover:border-red-300 hover:shadow-md"
                         }`}
                     >
-                      {/* Foto grande arriba */}
+                      {/* Foto */}
                       <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
                         {candidato.foto_url ? (
-                          <img src={candidato.foto_url} alt={candidato.nombre}
-                            className="w-full h-full object-cover object-top"
+                          <img
+                            src={candidato.foto_url}
+                            alt={candidato.nombre}
+                            className="w-full h-full object-cover object-center"
                             onError={(e) => {
                               e.target.style.display = 'none'
+                              e.target.parentElement.innerHTML += `<div class="w-full h-full flex items-center justify-center absolute inset-0"><span class="text-5xl font-bold text-red-200">${candidato.nombre.charAt(0)}</span></div>`
                             }}
                           />
                         ) : (
@@ -179,22 +182,23 @@ export default function App() {
                           </div>
                         )}
                         {estaSeleccionado && (
-                          <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full">
+                          <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full font-bold">
                             ✓
                           </div>
                         )}
                       </div>
 
-                      {/* Info abajo */}
+                      {/* Info */}
                       <div className="p-4">
-                        <h3 className="font-semibold text-gray-900 text-sm text-center mb-2">
+                        <h3 className="font-semibold text-gray-900 text-sm text-center mb-2 leading-tight">
                           {candidato.nombre}
                         </h3>
                         <div className="flex items-center justify-center gap-2 mb-3">
                           {candidato.partido.logo_url && (
-                            <img src={candidato.partido.logo_url}
+                            <img
+                              src={candidato.partido.logo_url}
                               alt={candidato.partido.nombre}
-                              className="w-5 h-5 object-contain flex-shrink-0"
+                              className="w-6 h-6 object-contain flex-shrink-0"
                               onError={(e) => e.target.style.display = 'none'}
                             />
                           )}
@@ -204,7 +208,7 @@ export default function App() {
                         </div>
                         <button
                           onClick={(e) => { e.stopPropagation(); analizarCandidato(candidato) }}
-                          className="w-full text-xs bg-gray-800 text-white py-1.5 rounded-lg hover:bg-gray-700">
+                          className="w-full text-xs bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-700">
                           Analizar con IA →
                         </button>
                       </div>
@@ -273,12 +277,11 @@ export default function App() {
         {/* Vista: Análisis IA */}
         {vista === "analisis" && (
           <div>
-            {/* Header del análisis con foto */}
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-4 mb-6 bg-white rounded-xl p-4 shadow-sm">
               {candidatoAnalisis?.foto_url && (
                 <img src={candidatoAnalisis.foto_url}
                   alt={candidatoAnalisis.nombre}
-                  className="w-16 h-16 rounded-full object-cover object-top shadow"
+                  className="w-20 h-20 rounded-full object-cover object-center shadow border-2 border-red-100"
                 />
               )}
               <div>
@@ -289,7 +292,7 @@ export default function App() {
                   {candidatoAnalisis?.partido?.logo_url && (
                     <img src={candidatoAnalisis.partido.logo_url}
                       alt={candidatoAnalisis.partido.nombre}
-                      className="w-5 h-5 object-contain"
+                      className="w-6 h-6 object-contain"
                     />
                   )}
                   <p className="text-sm text-gray-500">
@@ -309,9 +312,7 @@ export default function App() {
                 </span>
               </div>
               {analizando && analisisTexto === "" && (
-                <p className="text-gray-400 animate-pulse">
-                  Claude está analizando...
-                </p>
+                <p className="text-gray-400 animate-pulse">Claude está analizando...</p>
               )}
               <pre className="whitespace-pre-wrap font-sans text-gray-700 leading-relaxed text-sm">
                 {analisisTexto}
