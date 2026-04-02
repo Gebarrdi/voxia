@@ -15,14 +15,8 @@ export default function App() {
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL || ''}/api/candidatos/`)
       .then(res => res.json())
-      .then(data => {
-        setCandidatos(data)
-        setLoading(false)
-      })
-      .catch(err => {
-        console.error(err)
-        setLoading(false)
-      })
+      .then(data => { setCandidatos(data); setLoading(false) })
+      .catch(err => { console.error(err); setLoading(false) })
   }, [])
 
   const toggleSeleccion = (candidato) => {
@@ -50,15 +44,12 @@ export default function App() {
     setAnalizando(true)
     setAnalisisTexto("")
     setVista("analisis")
-
     const response = await fetch(
       `${import.meta.env.VITE_API_URL || ''}/api/ai/pros-contras/${candidato.id}`,
       { method: "POST" }
     )
-
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
-
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
@@ -101,10 +92,8 @@ export default function App() {
             </p>
           </div>
           {(vista === "comparar" || vista === "analisis") && (
-            <button
-              onClick={volverALista}
-              className="bg-white text-red-700 px-4 py-2 rounded-lg font-medium hover:bg-red-50"
-            >
+            <button onClick={volverALista}
+              className="bg-white text-red-700 px-4 py-2 rounded-lg font-medium hover:bg-red-50">
               ← Volver
             </button>
           )}
@@ -121,10 +110,8 @@ export default function App() {
                 Candidatos presidenciales
               </h2>
               {seleccionados.length === 2 && (
-                <button
-                  onClick={comparar}
-                  className="bg-red-700 text-white px-6 py-2 rounded-lg font-medium hover:bg-red-800"
-                >
+                <button onClick={comparar}
+                  className="bg-red-700 text-white px-6 py-2 rounded-lg font-medium hover:bg-red-800">
                   Comparar seleccionados →
                 </button>
               )}
@@ -132,8 +119,7 @@ export default function App() {
 
             {/* Buscador */}
             <div className="mb-6">
-              <input
-                type="text"
+              <input type="text"
                 placeholder="Buscar por nombre o partido..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
@@ -141,15 +127,19 @@ export default function App() {
               />
             </div>
 
+            {/* Seleccionados */}
             {seleccionados.length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                 <p className="text-red-700 text-sm font-medium mb-2">
                   Seleccionados para comparar ({seleccionados.length}/2):
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {seleccionados.map(c => (
-                    <span key={c.id}
-                      className="bg-red-700 text-white px-3 py-1 rounded-full text-sm">
+                    <span key={c.id} className="bg-red-700 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      {c.foto_url && (
+                        <img src={c.foto_url} alt={c.nombre}
+                          className="w-5 h-5 rounded-full object-cover" />
+                      )}
                       {c.nombre}
                     </span>
                   ))}
@@ -157,51 +147,71 @@ export default function App() {
               </div>
             )}
 
+            {/* Grid candidatos */}
             {loading ? (
               <p className="text-gray-500">Cargando candidatos...</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {candidatosFiltrados.map(candidato => {
-                  const estaSeleccionado = seleccionados.find(
-                    c => c.id === candidato.id
-                  )
+                  const estaSeleccionado = seleccionados.find(c => c.id === candidato.id)
                   return (
-                    <div
-                      key={candidato.id}
-                      onClick={() => toggleSeleccion(candidato)}
+                    <div key={candidato.id} onClick={() => toggleSeleccion(candidato)}
                       className={`bg-white rounded-xl p-5 shadow-sm border-2 cursor-pointer transition-all
                         ${estaSeleccionado
                           ? "border-red-600 bg-red-50"
                           : "border-gray-100 hover:border-red-300 hover:shadow-md"
                         }`}
                     >
-                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-3">
-                        <span className="text-2xl font-bold text-red-700">
-                          {candidato.nombre.charAt(0)}
-                        </span>
+                      {/* Foto candidato */}
+                      <div className="w-20 h-20 rounded-full overflow-hidden mb-3 bg-red-100 mx-auto">
+                        {candidato.foto_url ? (
+                          <img src={candidato.foto_url} alt={candidato.nombre}
+                            className="w-full h-full object-cover object-top"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                              e.target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center"><span class="text-2xl font-bold text-red-700">${candidato.nombre.charAt(0)}</span></div>`
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-2xl font-bold text-red-700">
+                              {candidato.nombre.charAt(0)}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <h3 className="font-semibold text-gray-900">
+
+                      {/* Nombre */}
+                      <h3 className="font-semibold text-gray-900 text-center text-sm">
                         {candidato.nombre}
                       </h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {candidato.partido.nombre}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {candidato.partido.siglas}
-                      </p>
+
+                      {/* Partido con logo */}
+                      <div className="flex items-center justify-center gap-2 mt-2">
+                        {candidato.partido.logo_url && (
+                          <img src={candidato.partido.logo_url}
+                            alt={candidato.partido.nombre}
+                            className="w-6 h-6 object-contain"
+                            onError={(e) => e.target.style.display = 'none'}
+                          />
+                        )}
+                        <p className="text-xs text-gray-500 text-center">
+                          {candidato.partido.nombre}
+                        </p>
+                      </div>
+
                       {estaSeleccionado && (
-                        <span className="mt-2 inline-block text-xs bg-red-600 text-white px-2 py-1 rounded-full">
-                          ✓ Seleccionado
-                        </span>
+                        <div className="mt-2 text-center">
+                          <span className="text-xs bg-red-600 text-white px-2 py-1 rounded-full">
+                            ✓ Seleccionado
+                          </span>
+                        </div>
                       )}
-                      {/* Botón análisis IA */}
+
+                      {/* Botón IA */}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          analizarCandidato(candidato)
-                        }}
-                        className="mt-3 w-full text-xs bg-gray-800 text-white py-1.5 rounded-lg hover:bg-gray-700"
-                      >
+                        onClick={(e) => { e.stopPropagation(); analizarCandidato(candidato) }}
+                        className="mt-3 w-full text-xs bg-gray-800 text-white py-1.5 rounded-lg hover:bg-gray-700">
                         Analizar con IA →
                       </button>
                     </div>
@@ -269,13 +279,34 @@ export default function App() {
         {/* Vista: Análisis IA */}
         {vista === "analisis" && (
           <div>
-            <div className="flex items-center gap-3 mb-6">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Análisis IA — {candidatoAnalisis?.nombre}
-              </h2>
+            {/* Header del análisis con foto */}
+            <div className="flex items-center gap-4 mb-6">
+              {candidatoAnalisis?.foto_url && (
+                <img src={candidatoAnalisis.foto_url}
+                  alt={candidatoAnalisis.nombre}
+                  className="w-16 h-16 rounded-full object-cover object-top shadow"
+                />
+              )}
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {candidatoAnalisis?.nombre}
+                </h2>
+                <div className="flex items-center gap-2 mt-1">
+                  {candidatoAnalisis?.partido?.logo_url && (
+                    <img src={candidatoAnalisis.partido.logo_url}
+                      alt={candidatoAnalisis.partido.nombre}
+                      className="w-5 h-5 object-contain"
+                    />
+                  )}
+                  <p className="text-sm text-gray-500">
+                    {candidatoAnalisis?.partido?.nombre}
+                  </p>
+                </div>
+              </div>
             </div>
+
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
                 <span className="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-medium">
                   Generado por Claude AI
                 </span>
