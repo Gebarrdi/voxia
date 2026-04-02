@@ -21,7 +21,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "https://voxia-five.vercel.app",  # ← agrega tu URL de Vercel
-        "https://*.vercel.app"            # ← permite todos los subdominios de Vercel
+        "https://*.vercel.app",  # ← permite todos los subdominios
     ],
     allow_credentials=True,
     allow_methods=["*"],
