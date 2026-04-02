@@ -163,12 +163,12 @@ export default function App() {
                         }`}
                     >
                       {/* Foto */}
-                      <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
+                      <div className="w-full h-56 bg-gray-100 overflow-hidden relative">
                         {candidato.foto_url ? (
                           <img
                             src={candidato.foto_url}
                             alt={candidato.nombre}
-                            className="w-full h-full object-cover object-center"
+                            className="w-full h-full object-cover object-top"
                             onError={(e) => {
                               e.target.style.display = 'none'
                               e.target.parentElement.innerHTML += `<div class="w-full h-full flex items-center justify-center absolute inset-0"><span class="text-5xl font-bold text-red-200">${candidato.nombre.charAt(0)}</span></div>`
