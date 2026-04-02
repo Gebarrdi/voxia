@@ -13,7 +13,7 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("")
 
   useEffect(() => {
-    fetch("/api/candidatos/")
+    fetch(`${import.meta.env.VITE_API_URL || ''}/api/candidatos/`)
       .then(res => res.json())
       .then(data => {
         setCandidatos(data)
@@ -38,7 +38,7 @@ export default function App() {
     setLoadingComparacion(true)
     setVista("comparar")
     const res = await fetch(
-      `/api/comparar/?a=${seleccionados[0].id}&b=${seleccionados[1].id}`
+      `${import.meta.env.VITE_API_URL || ''}/api/comparar/?a=${seleccionados[0].id}&b=${seleccionados[1].id}`
     )
     const data = await res.json()
     setComparacion(data)
@@ -52,7 +52,7 @@ export default function App() {
     setVista("analisis")
 
     const response = await fetch(
-      `/api/ai/pros-contras/${candidato.id}`,
+      `${import.meta.env.VITE_API_URL || ''}/api/ai/pros-contras/${candidato.id}`,
       { method: "POST" }
     )
 
