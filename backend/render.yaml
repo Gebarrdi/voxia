@@ -2,8 +2,7 @@ services:
   - type: web
     name: voxia-backend
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    rootDir: backend
     envVars:
       - key: DATABASE_URL
         sync: false
