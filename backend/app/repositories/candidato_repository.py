@@ -14,12 +14,10 @@ class CandidatoRepository:
         self.db = db
 
     async def get_all(self) -> list[Candidato]:
-        # SELECT * FROM candidato JOIN partido_politico
-        # selectinload carga la relación partido automáticamente
         result = await self.db.execute(
-            select(Candidato).options(
-                selectinload(Candidato.partido)
-            )
+            select(Candidato)
+            .options(selectinload(Candidato.partido))
+            .order_by(Candidato.nombre)
         )
         return result.scalars().all()
 
