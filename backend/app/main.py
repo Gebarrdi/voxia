@@ -18,7 +18,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://voxia-five.vercel.app",  # ← agrega tu URL de Vercel
+        "https://*.vercel.app"            # ← permite todos los subdominios de Vercel
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
