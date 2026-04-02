@@ -156,64 +156,58 @@ export default function App() {
                   const estaSeleccionado = seleccionados.find(c => c.id === candidato.id)
                   return (
                     <div key={candidato.id} onClick={() => toggleSeleccion(candidato)}
-                      className={`bg-white rounded-xl p-5 shadow-sm border-2 cursor-pointer transition-all
+                      className={`bg-white rounded-xl overflow-hidden shadow-sm border-2 cursor-pointer transition-all
                         ${estaSeleccionado
-                          ? "border-red-600 bg-red-50"
+                          ? "border-red-600"
                           : "border-gray-100 hover:border-red-300 hover:shadow-md"
                         }`}
                     >
-                      {/* Foto candidato */}
-                      <div className="w-20 h-20 rounded-full overflow-hidden mb-3 bg-red-100 mx-auto">
+                      {/* Foto grande arriba */}
+                      <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
                         {candidato.foto_url ? (
                           <img src={candidato.foto_url} alt={candidato.nombre}
                             className="w-full h-full object-cover object-top"
                             onError={(e) => {
                               e.target.style.display = 'none'
-                              e.target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center"><span class="text-2xl font-bold text-red-700">${candidato.nombre.charAt(0)}</span></div>`
                             }}
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-2xl font-bold text-red-700">
+                          <div className="w-full h-full flex items-center justify-center bg-red-50">
+                            <span className="text-5xl font-bold text-red-200">
                               {candidato.nombre.charAt(0)}
                             </span>
                           </div>
                         )}
-                      </div>
-
-                      {/* Nombre */}
-                      <h3 className="font-semibold text-gray-900 text-center text-sm">
-                        {candidato.nombre}
-                      </h3>
-
-                      {/* Partido con logo */}
-                      <div className="flex items-center justify-center gap-2 mt-2">
-                        {candidato.partido.logo_url && (
-                          <img src={candidato.partido.logo_url}
-                            alt={candidato.partido.nombre}
-                            className="w-6 h-6 object-contain"
-                            onError={(e) => e.target.style.display = 'none'}
-                          />
+                        {estaSeleccionado && (
+                          <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full">
+                            ✓
+                          </div>
                         )}
-                        <p className="text-xs text-gray-500 text-center">
-                          {candidato.partido.nombre}
-                        </p>
                       </div>
 
-                      {estaSeleccionado && (
-                        <div className="mt-2 text-center">
-                          <span className="text-xs bg-red-600 text-white px-2 py-1 rounded-full">
-                            ✓ Seleccionado
-                          </span>
+                      {/* Info abajo */}
+                      <div className="p-4">
+                        <h3 className="font-semibold text-gray-900 text-sm text-center mb-2">
+                          {candidato.nombre}
+                        </h3>
+                        <div className="flex items-center justify-center gap-2 mb-3">
+                          {candidato.partido.logo_url && (
+                            <img src={candidato.partido.logo_url}
+                              alt={candidato.partido.nombre}
+                              className="w-5 h-5 object-contain flex-shrink-0"
+                              onError={(e) => e.target.style.display = 'none'}
+                            />
+                          )}
+                          <p className="text-xs text-gray-500 text-center leading-tight">
+                            {candidato.partido.nombre}
+                          </p>
                         </div>
-                      )}
-
-                      {/* Botón IA */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); analizarCandidato(candidato) }}
-                        className="mt-3 w-full text-xs bg-gray-800 text-white py-1.5 rounded-lg hover:bg-gray-700">
-                        Analizar con IA →
-                      </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); analizarCandidato(candidato) }}
+                          className="w-full text-xs bg-gray-800 text-white py-1.5 rounded-lg hover:bg-gray-700">
+                          Analizar con IA →
+                        </button>
+                      </div>
                     </div>
                   )
                 })}
