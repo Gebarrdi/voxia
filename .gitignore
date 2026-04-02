@@ -1,0 +1,15 @@
+# Entorno virtual
+.venv/
+
+# Variables de entorno (credenciales)
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Docker volumes
+postgres_data/

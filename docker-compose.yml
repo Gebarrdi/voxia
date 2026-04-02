@@ -1,0 +1,22 @@
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: voxia_postgres
+    environment:
+      POSTGRES_DB: voxia_db
+      POSTGRES_USER: voxia_user
+      POSTGRES_PASSWORD: voxia_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: voxia_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
