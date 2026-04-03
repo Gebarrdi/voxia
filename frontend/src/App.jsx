@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export default function App() {
   const [candidatos, setCandidatos] = useState([])
@@ -379,7 +380,7 @@ export default function App() {
                 <p className="text-gray-400 animate-pulse">Claude está comparando...</p>
               )}
               <div className="prose prose-sm max-w-none">
-                <ReactMarkdown components={mdComponents}>
+                <ReactMarkdown components={mdComponents} remarkPlugins={[remarkGfm]}>
                   {analisisTexto}
                 </ReactMarkdown>
               </div>
@@ -431,7 +432,7 @@ export default function App() {
                 <p className="text-gray-400 animate-pulse">Claude está analizando...</p>
               )}
               <div className="prose prose-sm max-w-none">
-                <ReactMarkdown components={mdComponents}>
+                <ReactMarkdown components={mdComponents} remarkPlugins={[remarkGfm]}>
                   {analisisTexto}
                 </ReactMarkdown>
               </div>
