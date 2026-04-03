@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models.candidato import Candidato, Propuesta
 from app.config import get_settings
+from app.pdf_reader import extraer_plan_gobierno
 import anthropic
 import json
 
@@ -15,55 +16,9 @@ router = APIRouter(prefix="/api/ai", tags=["Análisis IA"])
 settings = get_settings()
 
 
-def build_prompt_pros_contras(candidato: Candidato) -> str:
-    # Construye el prompt con la información del candidato
-    propuestas_texto = "\n".join([
-        f"- [{p.tema.nombre}]: {p.descripcion}"
-        for p in candidato.propuestas
-    ]) or "No hay propuestas registradas."
-
-    return f"""Eres un analista político neutral. Analiza al siguiente
-candidato presidencial peruano de forma objetiva y equilibrada.
-
-Candidato: {candidato.nombre}
-Partido: {candidato.partido.nombre}
-Biografía: {candidato.biografia or 'No disponible'}
-
-Propuestas principales:
-{propuestas_texto}
-
-Proporciona:
-1. **PROS**: 3 aspectos positivos fundamentados de su candidatura
-2. **CONTRAS**: 3 aspectos negativos o riesgos de su candidatura
-3. **CONCLUSIÓN**: Un párrafo neutral de resumen
-
-Sé objetivo, usa evidencia y evita sesgos políticos.
-IMPORTANTE: Este análisis es informativo. No constituye
-recomendación de voto."""
-
-
-def build_prompt_viabilidad(propuesta: Propuesta) -> str:
-    return f"""Eres un economista y analista de políticas públicas neutral.
-Analiza la viabilidad de la siguiente propuesta electoral peruana.
-
-Candidato: {propuesta.candidato.nombre}
-Tema: {propuesta.tema.nombre}
-Propuesta: {propuesta.descripcion}
-
-Proporciona:
-1. **CONTEXTO**: Qué implica esta propuesta
-2. **EXPERIENCIAS INTERNACIONALES**: 2-3 casos de países que implementaron
-   políticas similares y sus resultados reales
-3. **ANÁLISIS DE VIABILIDAD**: Factores económicos, sociales y fiscales
-4. **CONCLUSIÓN**: ¿Es viable? ¿Bajo qué condiciones?
-
-Basa tu análisis en evidencia real. Sé neutral y objetivo."""
-
-
 async def stream_claude(prompt: str, model: str = "claude-haiku-4-5-20251001"):
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
-    # Claude con web search — busca información real antes de analizar
     with client.messages.stream(
         model=model,
         max_tokens=4000,
@@ -74,7 +29,6 @@ async def stream_claude(prompt: str, model: str = "claude-haiku-4-5-20251001"):
         messages=[{"role": "user", "content": prompt}]
     ) as stream:
         for event in stream:
-            # Solo enviamos los bloques de texto al frontend
             if hasattr(event, 'type'):
                 if event.type == 'content_block_delta':
                     if hasattr(event.delta, 'text'):
@@ -102,39 +56,62 @@ async def analizar_pros_contras(
     if not candidato:
         raise HTTPException(status_code=404, detail="Candidato no encontrado")
 
-    prompt = f"""Eres un analista político neutral peruano.
-Analiza al candidato presidencial {candidato.nombre} de
-{candidato.partido.nombre} para las elecciones peruanas
-del 12 de abril de 2026.
+    # Extraer plan de gobierno del PDF oficial JNE
+    plan_gobierno = extraer_plan_gobierno(candidato.nombre)
 
-INSTRUCCIONES:
-1. Usa web_search para buscar información actualizada sobre:
-   - "{candidato.nombre} plan de gobierno 2026"
-   - "{candidato.nombre} propuestas presidenciales"
-   - "{candidato.nombre} antecedentes historial político"
-   - "{candidato.nombre} proyectos de ley aprobados"
-     (si fue congresista)
+    prompt = f"""Eres un analista político peruano independiente y riguroso.
+Analiza al candidato presidencial {candidato.nombre} de \
+{candidato.partido.nombre} para las elecciones peruanas del \
+12 de abril de 2026.
 
-2. Con la información encontrada, proporciona:
+PLAN DE GOBIERNO OFICIAL (fuente: JNE - Voto Informado):
+{plan_gobierno}
 
-**PROS** (3 aspectos positivos fundamentados con
-evidencia):
-- Cada pro debe citar una fuente o dato concreto
+INSTRUCCIONES DE BÚSQUEDA WEB — ejecuta estas búsquedas:
+1. "{candidato.nombre} perfil académico universidad estudios"
+2. "{candidato.nombre} trayectoria laboral cargos públicos empresas"
+3. "{candidato.nombre} congresista proyectos de ley aprobados presentados"
+4. "{candidato.nombre} casos corrupción investigaciones judiciales fiscalía"
+5. "{candidato.nombre} escándalos cuestionamientos éticos "
+        "2020 2021 2022 2023 2024 2025"
+6. "{candidato.nombre} logros obras resultados gestión"
+7. "{candidato.nombre} investigación periodística IDL OjoPúblico Hildebrandt"
 
-**CONTRAS** (3 aspectos negativos o riesgos con
-evidencia):
-- Cada contra debe citar una fuente o dato concreto
+FORMATO DE RESPUESTA — usa exactamente esta estructura:
 
-**VIABILIDAD DE PROPUESTAS CLAVE**:
-- Menciona 1-2 propuestas específicas de su plan y
-  evalúa si son viables
+## 👤 PERFIL ACADÉMICO Y PROFESIONAL
+- Estudios universitarios y postgrados
+- Trayectoria laboral (empresas, cargos, fechas)
+- Si fue/es congresista: desde cuándo, proyectos presentados y aprobados
 
-**CONCLUSIÓN**:
-- Párrafo neutral de resumen para el ciudadano
+## 📋 PLAN DE GOBIERNO — PROPUESTAS CLAVE
+Lista las 5-6 propuestas más importantes por eje temático
+(economía, seguridad, educación, salud, corrupción).
+Evalúa brevemente la viabilidad de cada una basándote
+en experiencias internacionales similares.
 
-IMPORTANTE: Sé objetivo y neutral. No recomiendas por
-quién votar. Este análisis es informativo para el
-ciudadano peruano."""
+## ✅ ASPECTOS POSITIVOS
+3 puntos positivos con evidencia concreta y fuente.
+
+## ⚠️ ASPECTOS NEGATIVOS Y RIESGOS
+3 puntos negativos, investigaciones judiciales o
+cuestionamientos éticos. Cita la fuente específica.
+No omitas información negativa relevante.
+
+## 🔍 INVESTIGACIONES PERIODÍSTICAS
+Menciona investigaciones de IDL-Reporteros, OjoPúblico,
+La República, El Comercio, Hildebrandt, etc.
+con la fuente y año específicos.
+
+## 📊 CONCLUSIÓN NEUTRAL
+Párrafo balanceado sin recomendar por quién votar.
+El ciudadano decide con información completa.
+
+IMPORTANTE:
+- Sé directo y sin eufemismos
+- Cita fuentes específicas
+- No omitas información negativa relevante
+- No recomiendas por quién votar"""
 
     return StreamingResponse(
         stream_claude(prompt, model="claude-haiku-4-5-20251001"),
