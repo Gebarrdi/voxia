@@ -79,6 +79,34 @@ export default function App() {
     c.partido.nombre.toLowerCase().includes(busqueda.toLowerCase())
   )
 
+  const analizarViabilidad = async (candidato) => {
+    setCandidatoAnalisis(candidato)
+    setAnalizando(true)
+    setAnalisisTexto("")
+    setVista("analisis")
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || ''}/api/ai/viabilidad/${candidato.id}`,
+      { method: "POST" }
+    )
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const chunk = decoder.decode(value)
+      const lines = chunk.split("\n")
+      for (const line of lines) {
+        if (line.startsWith("data: ") && line !== "data: [DONE]") {
+          try {
+            const data = JSON.parse(line.replace("data: ", ""))
+            setAnalisisTexto(prev => prev + data.texto)
+          } catch {}
+        }
+      }
+    }
+    setAnalizando(false)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -210,6 +238,11 @@ export default function App() {
                           onClick={(e) => { e.stopPropagation(); analizarCandidato(candidato) }}
                           className="w-full text-xs bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-700">
                           Analizar con IA →
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); analizarViabilidad(candidato) }}
+                          className="w-full text-xs bg-red-700 text-white py-2 rounded-lg hover:bg-red-800 mt-2">
+                          Verificar viabilidad →
                         </button>
                       </div>
                     </div>

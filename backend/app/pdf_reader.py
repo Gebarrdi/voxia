@@ -22,7 +22,7 @@ def extraer_plan_gobierno(nombre_candidato: str) -> str:
             texto = texto[:8000] + "\n...[resumen truncado]"
 
         stripped_text = texto.strip()
-        return (stripped_text if stripped_text 
+        return (stripped_text if stripped_text
                 else "No se pudo extraer texto del PDF.")
 
     except Exception as e:

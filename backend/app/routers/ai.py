@@ -120,44 +120,55 @@ IMPORTANTE:
     )
 
 
-@router.post("/viabilidad/{propuesta_id}")
+@router.post("/viabilidad/{candidato_id}")
 async def analizar_viabilidad(
-    propuesta_id: int,
+    candidato_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
-        select(Propuesta)
-        .options(
-            selectinload(Propuesta.candidato),
-            selectinload(Propuesta.tema)
-        )
-        .where(Propuesta.id == propuesta_id)
+        select(Candidato)
+        .options(selectinload(Candidato.partido))
+        .where(Candidato.id == candidato_id)
     )
-    propuesta = result.scalar_one_or_none()
+    candidato = result.scalar_one_or_none()
 
-    if not propuesta:
-        raise HTTPException(status_code=404, detail="Propuesta no encontrada")
+    if not candidato:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
 
-    prompt = f"""Eres un economista y analista de políticas públicas neutral.
-Analiza la viabilidad de esta propuesta electoral peruana 2026.
+    plan_gobierno = extraer_plan_gobierno(candidato.nombre)
 
-Candidato: {propuesta.candidato.nombre}
-Propuesta: {propuesta.descripcion}
-Tema: {propuesta.tema.nombre}
+    prompt = f"""Eres un economista y analista de políticas públicas peruano,
+independiente y riguroso. Analiza la VIABILIDAD del plan de gobierno de
+{candidato.nombre} ({candidato.partido.nombre}) para las elecciones 2026.
 
-INSTRUCCIONES:
-1. Usa web_search para buscar:
-   - Experiencias internacionales de políticas similares
-   - Resultados reales en otros países
-   - Contexto económico del Perú relevante
+PLAN DE GOBIERNO OFICIAL (fuente: JNE):
+{plan_gobierno}
 
-2. Proporciona:
-**CONTEXTO**: Qué implica esta propuesta
-**EXPERIENCIAS INTERNACIONALES**: 2-3 casos reales con resultados
-**ANÁLISIS DE VIABILIDAD**: Factores económicos y sociales
-**CONCLUSIÓN**: ¿Es viable? ¿Bajo qué condiciones?
+INSTRUCCIONES DE BÚSQUEDA — ejecuta estas búsquedas:
+1. "{candidato.nombre} propuestas económicas viabilidad 2026"
+2. "Peru contexto económico fiscal 2026 presupuesto"
+3. Busca experiencias internacionales de las propuestas más ambiciosas
 
-Basa todo en evidencia real. Sé neutral y objetivo."""
+FORMATO DE RESPUESTA:
+
+## 💰 VIABILIDAD ECONÓMICA
+¿Las propuestas económicas son fiscalmente sostenibles?
+¿Hay fuentes de financiamiento identificadas?
+
+## 🌍 COMPARACIÓN INTERNACIONAL
+Para las 2-3 propuestas más importantes, casos de países
+que implementaron políticas similares y sus resultados reales.
+
+## ⚡ PROPUESTAS DE ALTO IMPACTO
+Las 3 propuestas más ambiciosas evaluadas:
+- ¿Es técnicamente factible?
+- ¿Tiene precedentes exitosos?
+- ¿Cuáles son los riesgos principales?
+
+## 📊 VEREDICTO FINAL
+Calificación: Alta / Media / Baja viabilidad — con justificación.
+
+Sé directo, usa evidencia real, cita fuentes."""
 
     return StreamingResponse(
         stream_claude(prompt, model="claude-sonnet-4-20250514"),
