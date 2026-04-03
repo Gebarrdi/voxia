@@ -215,43 +215,54 @@ INSTRUCCIONES DE BÚSQUEDA:
 1. "{candidato_a.nombre} propuestas 2026 historial"
 2. "{candidato_b.nombre} propuestas 2026 historial"
 
-FORMATO DE RESPUESTA — compara por cada eje temático:
+FORMATO DE RESPUESTA — usa tablas markdown por cada eje temático:
 
 ## ⚖️ COMPARACIÓN: {candidato_a.nombre} vs {candidato_b.nombre}
 
 ### 💰 ECONOMÍA
-**{candidato_a.nombre}:** propuesta económica en 2-3 líneas
-**{candidato_b.nombre}:** propuesta económica en 2-3 líneas
-**Diferencia clave:** qué los distingue en este eje
+| | {candidato_a.nombre} | {candidato_b.nombre} |
+|---|---|---|
+| **Propuesta** | propuesta en 1-2 líneas | propuesta en 1-2 líneas |
+| **Viabilidad** | Alta/Media/Baja | Alta/Media/Baja |
+| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
 
 ### 🔒 SEGURIDAD
-**{candidato_a.nombre}:** propuesta en 2-3 líneas
-**{candidato_b.nombre}:** propuesta en 2-3 líneas
-**Diferencia clave:** qué los distingue
+| | {candidato_a.nombre} | {candidato_b.nombre} |
+|---|---|---|
+| **Propuesta** | propuesta en 1-2 líneas | propuesta en 1-2 líneas |
+| **Viabilidad** | Alta/Media/Baja | Alta/Media/Baja |
+| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
 
 ### 📚 EDUCACIÓN
-**{candidato_a.nombre}:** propuesta en 2-3 líneas
-**{candidato_b.nombre}:** propuesta en 2-3 líneas
-**Diferencia clave:** qué los distingue
+| | {candidato_a.nombre} | {candidato_b.nombre} |
+|---|---|---|
+| **Propuesta** | propuesta en 1-2 líneas | propuesta en 1-2 líneas |
+| **Viabilidad** | Alta/Media/Baja | Alta/Media/Baja |
+| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
 
 ### 🏥 SALUD
-**{candidato_a.nombre}:** propuesta en 2-3 líneas
-**{candidato_b.nombre}:** propuesta en 2-3 líneas
-**Diferencia clave:** qué los distingue
+| | {candidato_a.nombre} | {candidato_b.nombre} |
+|---|---|---|
+| **Propuesta** | propuesta en 1-2 líneas | propuesta en 1-2 líneas |
+| **Viabilidad** | Alta/Media/Baja | Alta/Media/Baja |
+| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
 
 ### ⚖️ CORRUPCIÓN
-**{candidato_a.nombre}:** postura y antecedentes en 2-3 líneas
-**{candidato_b.nombre}:** postura y antecedentes en 2-3 líneas
-**Diferencia clave:** qué los distingue
+| | {candidato_a.nombre} | {candidato_b.nombre} |
+|---|---|---|
+| **Postura** | postura en 1-2 líneas | postura en 1-2 líneas |
+| **Antecedentes** | antecedentes relevantes | antecedentes relevantes |
+| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
 
 ### 🌿 MEDIO AMBIENTE
-**{candidato_a.nombre}:** propuesta en 2-3 líneas
-**{candidato_b.nombre}:** propuesta en 2-3 líneas
-**Diferencia clave:** qué los distingue
+| | {candidato_a.nombre} | {candidato_b.nombre} |
+|---|---|---|
+| **Propuesta** | propuesta en 1-2 líneas | propuesta en 1-2 líneas |
+| **Viabilidad** | Alta/Media/Baja | Alta/Media/Baja |
+| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
 
 ### 📊 CONCLUSIÓN
-Párrafo final balanceado destacando las diferencias más importantes.
-No recomiendas por quién votar."""
+Párrafo final balanceado. No recomiendas por quién votar."""
 
     return StreamingResponse(
         stream_claude(prompt, model="claude-sonnet-4-20250514"),

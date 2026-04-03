@@ -89,18 +89,6 @@ export default function App() {
     setAnalizando(false)
   }
 
-  const volverALista = () => {
-    setVista("lista")
-    setComparacion(null)
-    setAnalisisTexto("")
-    setCandidatoAnalisis(null)
-  }
-
-  const candidatosFiltrados = candidatos.filter(c =>
-    c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    c.partido.nombre.toLowerCase().includes(busqueda.toLowerCase())
-  )
-
   const analizarViabilidad = async (candidato) => {
     setCandidatoAnalisis(candidato)
     setAnalizando(true)
@@ -127,6 +115,68 @@ export default function App() {
       }
     }
     setAnalizando(false)
+  }
+
+  const volverALista = () => {
+    setVista("lista")
+    setComparacion(null)
+    setAnalisisTexto("")
+    setCandidatoAnalisis(null)
+  }
+
+  const candidatosFiltrados = candidatos.filter(c =>
+    c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+    c.partido.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  )
+
+  const mdComponents = {
+    h2: ({children}) => (
+      <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-3 border-b border-gray-100 pb-2">
+        {children}
+      </h2>
+    ),
+    h3: ({children}) => (
+      <h3 className="text-base font-medium text-red-700 mt-4 mb-2">
+        {children}
+      </h3>
+    ),
+    strong: ({children}) => (
+      <strong className="font-semibold text-gray-900">{children}</strong>
+    ),
+    p: ({children}) => (
+      <p className="text-sm text-gray-700 leading-relaxed mb-3">{children}</p>
+    ),
+    ul: ({children}) => (
+      <ul className="list-disc list-inside text-sm text-gray-700 mb-3 space-y-1">
+        {children}
+      </ul>
+    ),
+    li: ({children}) => (
+      <li className="text-sm text-gray-700 leading-relaxed">{children}</li>
+    ),
+    hr: () => <hr className="border-gray-100 my-4" />,
+    table: ({children}) => (
+      <div className="overflow-x-auto mb-4">
+        <table className="w-full text-sm border-collapse border border-gray-200 rounded-lg">
+          {children}
+        </table>
+      </div>
+    ),
+    thead: ({children}) => (
+      <thead className="bg-gray-800 text-white">{children}</thead>
+    ),
+    tbody: ({children}) => (
+      <tbody className="divide-y divide-gray-100">{children}</tbody>
+    ),
+    tr: ({children}) => (
+      <tr className="hover:bg-gray-50">{children}</tr>
+    ),
+    th: ({children}) => (
+      <th className="px-4 py-2 text-left text-xs font-medium">{children}</th>
+    ),
+    td: ({children}) => (
+      <td className="px-4 py-2 text-gray-700 align-top text-xs">{children}</td>
+    ),
   }
 
   return (
@@ -221,7 +271,6 @@ export default function App() {
                             className="w-full h-full object-contain object-top"
                             onError={(e) => {
                               e.target.style.display = 'none'
-                              e.target.parentElement.innerHTML += `<div class="w-full h-full flex items-center justify-center absolute inset-0"><span class="text-5xl font-bold text-red-200">${candidato.nombre.charAt(0)}</span></div>`
                             }}
                           />
                         ) : (
@@ -281,15 +330,21 @@ export default function App() {
         {/* Vista: Comparación */}
         {vista === "comparar" && (
           <div>
-            {/* Header con los dos candidatos */}
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-white rounded-xl p-4 shadow-sm flex flex-col items-center text-center">
                 {seleccionados[0]?.foto_url && (
                   <img src={seleccionados[0].foto_url}
-                    className="w-20 h-20 object-contain object-top mb-2" />
+                    alt={seleccionados[0].nombre}
+                    className="w-24 h-24 object-contain object-top mb-2" />
                 )}
                 <p className="font-semibold text-red-700 text-sm">{seleccionados[0]?.nombre}</p>
-                <p className="text-xs text-gray-500 mt-1">{seleccionados[0]?.partido?.nombre}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  {seleccionados[0]?.partido?.logo_url && (
+                    <img src={seleccionados[0].partido.logo_url}
+                      className="w-4 h-4 object-contain" />
+                  )}
+                  <p className="text-xs text-gray-500">{seleccionados[0]?.partido?.nombre}</p>
+                </div>
               </div>
               <div className="flex items-center justify-center font-bold text-2xl text-gray-300">
                 VS
@@ -297,14 +352,20 @@ export default function App() {
               <div className="bg-white rounded-xl p-4 shadow-sm flex flex-col items-center text-center">
                 {seleccionados[1]?.foto_url && (
                   <img src={seleccionados[1].foto_url}
-                    className="w-20 h-20 object-contain object-top mb-2" />
+                    alt={seleccionados[1].nombre}
+                    className="w-24 h-24 object-contain object-top mb-2" />
                 )}
                 <p className="font-semibold text-red-700 text-sm">{seleccionados[1]?.nombre}</p>
-                <p className="text-xs text-gray-500 mt-1">{seleccionados[1]?.partido?.nombre}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  {seleccionados[1]?.partido?.logo_url && (
+                    <img src={seleccionados[1].partido.logo_url}
+                      className="w-4 h-4 object-contain" />
+                  )}
+                  <p className="text-xs text-gray-500">{seleccionados[1]?.partido?.nombre}</p>
+                </div>
               </div>
             </div>
 
-            {/* Resultado IA */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-center gap-2 mb-4">
                 <span className="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-medium">
@@ -317,35 +378,8 @@ export default function App() {
               {loadingComparacion && analisisTexto === "" && (
                 <p className="text-gray-400 animate-pulse">Claude está comparando...</p>
               )}
-              <div className="prose prose-sm max-w-none text-gray-700">
-                <ReactMarkdown
-                  components={{
-                    h2: ({children}) => (
-                      <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-3 border-b border-gray-100 pb-2">
-                        {children}
-                      </h2>
-                    ),
-                    h3: ({children}) => (
-                      <h3 className="text-base font-medium text-red-700 mt-4 mb-2">
-                        {children}
-                      </h3>
-                    ),
-                    strong: ({children}) => (
-                      <strong className="font-semibold text-gray-900">{children}</strong>
-                    ),
-                    p: ({children}) => (
-                      <p className="text-sm text-gray-700 leading-relaxed mb-3">{children}</p>
-                    ),
-                    ul: ({children}) => (
-                      <ul className="list-disc list-inside text-sm text-gray-700 mb-3 space-y-1">
-                        {children}
-                      </ul>
-                    ),
-                    li: ({children}) => (
-                      <li className="text-sm text-gray-700">{children}</li>
-                    ),
-                  }}
-                >
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown components={mdComponents}>
                   {analisisTexto}
                 </ReactMarkdown>
               </div>
@@ -363,7 +397,7 @@ export default function App() {
               {candidatoAnalisis?.foto_url && (
                 <img src={candidatoAnalisis.foto_url}
                   alt={candidatoAnalisis.nombre}
-                  className="w-20 h-20 rounded-full object-cover object-center shadow border-2 border-red-100"
+                  className="w-20 h-20 object-contain object-top shadow border-2 border-red-100 rounded-lg"
                 />
               )}
               <div>
@@ -396,36 +430,8 @@ export default function App() {
               {analizando && analisisTexto === "" && (
                 <p className="text-gray-400 animate-pulse">Claude está analizando...</p>
               )}
-              <div className="prose prose-sm max-w-none text-gray-700">
-                <ReactMarkdown
-                  components={{
-                    h2: ({children}) => (
-                      <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-3 flex items-center gap-2 border-b border-gray-100 pb-2">
-                        {children}
-                      </h2>
-                    ),
-                    h3: ({children}) => (
-                      <h3 className="text-base font-medium text-gray-800 mt-4 mb-2">
-                        {children}
-                      </h3>
-                    ),
-                    strong: ({children}) => (
-                      <strong className="font-semibold text-gray-900">{children}</strong>
-                    ),
-                    p: ({children}) => (
-                      <p className="text-sm text-gray-700 leading-relaxed mb-3">{children}</p>
-                    ),
-                    ul: ({children}) => (
-                      <ul className="list-disc list-inside text-sm text-gray-700 mb-3 space-y-1">
-                        {children}
-                      </ul>
-                    ),
-                    li: ({children}) => (
-                      <li className="text-sm text-gray-700 leading-relaxed">{children}</li>
-                    ),
-                    hr: () => <hr className="border-gray-100 my-4" />,
-                  }}
-                >
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown components={mdComponents}>
                   {analisisTexto}
                 </ReactMarkdown>
               </div>
