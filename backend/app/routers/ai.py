@@ -175,3 +175,86 @@ Sé directo, usa evidencia real, cita fuentes."""
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     )
+
+
+@router.post("/comparar/{candidato_a_id}/{candidato_b_id}")
+async def comparar_candidatos(
+    candidato_a_id: int,
+    candidato_b_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    result_a = await db.execute(
+        select(Candidato).options(selectinload(Candidato.partido))
+        .where(Candidato.id == candidato_a_id)
+    )
+    result_b = await db.execute(
+        select(Candidato).options(selectinload(Candidato.partido))
+        .where(Candidato.id == candidato_b_id)
+    )
+    candidato_a = result_a.scalar_one_or_none()
+    candidato_b = result_b.scalar_one_or_none()
+
+    if not candidato_a or not candidato_b:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+
+    plan_a = extraer_plan_gobierno(candidato_a.nombre)
+    plan_b = extraer_plan_gobierno(candidato_b.nombre)
+
+    prompt = f"""Eres un analista político peruano independiente y riguroso.
+Compara a estos dos candidatos presidenciales para las elecciones 2026.
+
+CANDIDATO A: {candidato_a.nombre} ({candidato_a.partido.nombre})
+PLAN DE GOBIERNO A:
+{plan_a}
+
+CANDIDATO B: {candidato_b.nombre} ({candidato_b.partido.nombre})
+PLAN DE GOBIERNO B:
+{plan_b}
+
+INSTRUCCIONES DE BÚSQUEDA:
+1. "{candidato_a.nombre} propuestas 2026 historial"
+2. "{candidato_b.nombre} propuestas 2026 historial"
+
+FORMATO DE RESPUESTA — compara por cada eje temático:
+
+## ⚖️ COMPARACIÓN: {candidato_a.nombre} vs {candidato_b.nombre}
+
+### 💰 ECONOMÍA
+**{candidato_a.nombre}:** propuesta económica en 2-3 líneas
+**{candidato_b.nombre}:** propuesta económica en 2-3 líneas
+**Diferencia clave:** qué los distingue en este eje
+
+### 🔒 SEGURIDAD
+**{candidato_a.nombre}:** propuesta en 2-3 líneas
+**{candidato_b.nombre}:** propuesta en 2-3 líneas
+**Diferencia clave:** qué los distingue
+
+### 📚 EDUCACIÓN
+**{candidato_a.nombre}:** propuesta en 2-3 líneas
+**{candidato_b.nombre}:** propuesta en 2-3 líneas
+**Diferencia clave:** qué los distingue
+
+### 🏥 SALUD
+**{candidato_a.nombre}:** propuesta en 2-3 líneas
+**{candidato_b.nombre}:** propuesta en 2-3 líneas
+**Diferencia clave:** qué los distingue
+
+### ⚖️ CORRUPCIÓN
+**{candidato_a.nombre}:** postura y antecedentes en 2-3 líneas
+**{candidato_b.nombre}:** postura y antecedentes en 2-3 líneas
+**Diferencia clave:** qué los distingue
+
+### 🌿 MEDIO AMBIENTE
+**{candidato_a.nombre}:** propuesta en 2-3 líneas
+**{candidato_b.nombre}:** propuesta en 2-3 líneas
+**Diferencia clave:** qué los distingue
+
+### 📊 CONCLUSIÓN
+Párrafo final balanceado destacando las diferencias más importantes.
+No recomiendas por quién votar."""
+
+    return StreamingResponse(
+        stream_claude(prompt, model="claude-sonnet-4-20250514"),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )

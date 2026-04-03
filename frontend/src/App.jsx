@@ -32,11 +32,32 @@ export default function App() {
     if (seleccionados.length !== 2) return
     setLoadingComparacion(true)
     setVista("comparar")
-    const res = await fetch(
-      `${import.meta.env.VITE_API_URL || ''}/api/comparar/?a=${seleccionados[0].id}&b=${seleccionados[1].id}`
+    setComparacion(null)
+    setAnalisisTexto("")
+    setAnalizando(true)
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || ''}/api/ai/comparar/${seleccionados[0].id}/${seleccionados[1].id}`,
+      { method: "POST" }
     )
-    const data = await res.json()
-    setComparacion(data)
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const chunk = decoder.decode(value)
+      const lines = chunk.split("\n")
+      for (const line of lines) {
+        if (line.startsWith("data: ") && line !== "data: [DONE]") {
+          try {
+            const data = JSON.parse(line.replace("data: ", ""))
+            setAnalisisTexto(prev => prev + data.texto)
+          } catch {}
+        }
+      }
+    }
+    setAnalizando(false)
     setLoadingComparacion(false)
   }
 
@@ -260,51 +281,78 @@ export default function App() {
         {/* Vista: Comparación */}
         {vista === "comparar" && (
           <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">
-              Comparación de propuestas
-            </h2>
-            {loadingComparacion ? (
-              <p className="text-gray-500">Cargando comparación...</p>
-            ) : comparacion && (
-              <div>
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="text-center font-semibold text-red-700 bg-red-50 rounded-lg p-3">
-                    {comparacion.candidato_a.nombre}
-                    <p className="text-xs text-gray-500 font-normal mt-1">
-                      {comparacion.candidato_a.partido}
-                    </p>
-                  </div>
-                  <div className="text-center font-bold text-gray-400 flex items-center justify-center">
-                    VS
-                  </div>
-                  <div className="text-center font-semibold text-red-700 bg-red-50 rounded-lg p-3">
-                    {comparacion.candidato_b.nombre}
-                    <p className="text-xs text-gray-500 font-normal mt-1">
-                      {comparacion.candidato_b.partido}
-                    </p>
-                  </div>
-                </div>
-                {Object.entries(comparacion.comparacion).map(([tema, props]) => (
-                  <div key={tema} className="mb-4 bg-white rounded-xl shadow-sm overflow-hidden">
-                    <div className="bg-gray-800 text-white px-5 py-3 font-medium">
-                      {tema}
-                    </div>
-                    <div className="grid grid-cols-2 divide-x divide-gray-100">
-                      <div className="p-4">
-                        {props.a.map((p, i) => (
-                          <p key={i} className="text-sm text-gray-700">{p}</p>
-                        ))}
-                      </div>
-                      <div className="p-4">
-                        {props.b.map((p, i) => (
-                          <p key={i} className="text-sm text-gray-700">{p}</p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            {/* Header con los dos candidatos */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-white rounded-xl p-4 shadow-sm flex flex-col items-center text-center">
+                {seleccionados[0]?.foto_url && (
+                  <img src={seleccionados[0].foto_url}
+                    className="w-20 h-20 object-contain object-top mb-2" />
+                )}
+                <p className="font-semibold text-red-700 text-sm">{seleccionados[0]?.nombre}</p>
+                <p className="text-xs text-gray-500 mt-1">{seleccionados[0]?.partido?.nombre}</p>
               </div>
-            )}
+              <div className="flex items-center justify-center font-bold text-2xl text-gray-300">
+                VS
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm flex flex-col items-center text-center">
+                {seleccionados[1]?.foto_url && (
+                  <img src={seleccionados[1].foto_url}
+                    className="w-20 h-20 object-contain object-top mb-2" />
+                )}
+                <p className="font-semibold text-red-700 text-sm">{seleccionados[1]?.nombre}</p>
+                <p className="text-xs text-gray-500 mt-1">{seleccionados[1]?.partido?.nombre}</p>
+              </div>
+            </div>
+
+            {/* Resultado IA */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-medium">
+                  Generado por Claude AI
+                </span>
+                <span className="text-gray-400 text-xs">
+                  Análisis informativo — no constituye recomendación de voto
+                </span>
+              </div>
+              {loadingComparacion && analisisTexto === "" && (
+                <p className="text-gray-400 animate-pulse">Claude está comparando...</p>
+              )}
+              <div className="prose prose-sm max-w-none text-gray-700">
+                <ReactMarkdown
+                  components={{
+                    h2: ({children}) => (
+                      <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-3 border-b border-gray-100 pb-2">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({children}) => (
+                      <h3 className="text-base font-medium text-red-700 mt-4 mb-2">
+                        {children}
+                      </h3>
+                    ),
+                    strong: ({children}) => (
+                      <strong className="font-semibold text-gray-900">{children}</strong>
+                    ),
+                    p: ({children}) => (
+                      <p className="text-sm text-gray-700 leading-relaxed mb-3">{children}</p>
+                    ),
+                    ul: ({children}) => (
+                      <ul className="list-disc list-inside text-sm text-gray-700 mb-3 space-y-1">
+                        {children}
+                      </ul>
+                    ),
+                    li: ({children}) => (
+                      <li className="text-sm text-gray-700">{children}</li>
+                    ),
+                  }}
+                >
+                  {analisisTexto}
+                </ReactMarkdown>
+              </div>
+              {analizando && (
+                <span className="inline-block w-2 h-4 bg-red-600 animate-pulse ml-1" />
+              )}
+            </div>
           </div>
         )}
 
