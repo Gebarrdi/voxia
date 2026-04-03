@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import ReactMarkdown from 'react-markdown'
 
 export default function App() {
   const [candidatos, setCandidatos] = useState([])
@@ -347,9 +348,39 @@ export default function App() {
               {analizando && analisisTexto === "" && (
                 <p className="text-gray-400 animate-pulse">Claude está analizando...</p>
               )}
-              <pre className="whitespace-pre-wrap font-sans text-gray-700 leading-relaxed text-sm">
-                {analisisTexto}
-              </pre>
+              <div className="prose prose-sm max-w-none text-gray-700">
+                <ReactMarkdown
+                  components={{
+                    h2: ({children}) => (
+                      <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-3 flex items-center gap-2 border-b border-gray-100 pb-2">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({children}) => (
+                      <h3 className="text-base font-medium text-gray-800 mt-4 mb-2">
+                        {children}
+                      </h3>
+                    ),
+                    strong: ({children}) => (
+                      <strong className="font-semibold text-gray-900">{children}</strong>
+                    ),
+                    p: ({children}) => (
+                      <p className="text-sm text-gray-700 leading-relaxed mb-3">{children}</p>
+                    ),
+                    ul: ({children}) => (
+                      <ul className="list-disc list-inside text-sm text-gray-700 mb-3 space-y-1">
+                        {children}
+                      </ul>
+                    ),
+                    li: ({children}) => (
+                      <li className="text-sm text-gray-700 leading-relaxed">{children}</li>
+                    ),
+                    hr: () => <hr className="border-gray-100 my-4" />,
+                  }}
+                >
+                  {analisisTexto}
+                </ReactMarkdown>
+              </div>
               {analizando && (
                 <span className="inline-block w-2 h-4 bg-red-600 animate-pulse ml-1" />
               )}
