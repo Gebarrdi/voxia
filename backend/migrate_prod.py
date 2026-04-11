@@ -21,6 +21,7 @@ if not DATABASE_URL:
 
 print(f"Conectando a: {DATABASE_URL[:50]}...")
 
+
 async def migrar():
     engine = create_async_engine(DATABASE_URL, echo=False)
     async with engine.begin() as conn:
@@ -35,7 +36,7 @@ async def migrar():
         # 2. Crear nueva constraint única en (tipo, clave)
         await conn.execute(text(
             "ALTER TABLE cache_analisis "
-            "ADD CONSTRAINT IF NOT EXISTS cache_analisis_tipo_clave_key "
+            "ADD CONSTRAINT cache_analisis_tipo_clave_key "
             "UNIQUE (tipo, clave)"
         ))
         print("✅ Nueva constraint UNIQUE(tipo, clave) creada")
