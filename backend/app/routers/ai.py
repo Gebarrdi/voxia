@@ -56,7 +56,6 @@ async def analizar_pros_contras(
     if not candidato:
         raise HTTPException(status_code=404, detail="Candidato no encontrado")
 
-    # Extraer plan de gobierno del PDF oficial JNE
     plan_gobierno = extraer_plan_gobierno(candidato.nombre)
 
     prompt = f"""Eres un analista político peruano independiente y riguroso.
@@ -70,12 +69,15 @@ PLAN DE GOBIERNO OFICIAL (fuente: JNE - Voto Informado):
 INSTRUCCIONES DE BÚSQUEDA WEB — ejecuta estas búsquedas:
 1. "{candidato.nombre} perfil académico universidad estudios"
 2. "{candidato.nombre} trayectoria laboral cargos públicos empresas"
-3. "{candidato.nombre} congresista proyectos de ley aprobados presentados"
-4. "{candidato.nombre} casos corrupción investigaciones judiciales fiscalía"
-5. "{candidato.nombre} escándalos cuestionamientos éticos "
-        "2020 2021 2022 2023 2024 2025"
+3. "{candidato.nombre} congresista proyectos de ley aprobados \
+presentados"
+4. "{candidato.nombre} casos corrupción investigaciones judiciales \
+fiscalía"
+5. "{candidato.nombre} escándalos cuestionamientos éticos 2020 2021 \
+2022 2023 2024 2025"
 6. "{candidato.nombre} logros obras resultados gestión"
-7. "{candidato.nombre} investigación periodística IDL OjoPúblico Hildebrandt"
+7. "{candidato.nombre} investigación periodística IDL OjoPúblico \
+Hildebrandt"
 
 FORMATO DE RESPUESTA — usa exactamente esta estructura:
 
@@ -200,8 +202,11 @@ async def comparar_candidatos(
     plan_a = extraer_plan_gobierno(candidato_a.nombre)
     plan_b = extraer_plan_gobierno(candidato_b.nombre)
 
+    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+
     prompt = f"""Eres un analista político peruano independiente y riguroso.
-Compara a estos dos candidatos presidenciales para las elecciones 2026.
+Compara a estos dos candidatos presidenciales para las \
+elecciones peruanas 2026.
 
 CANDIDATO A: {candidato_a.nombre} ({candidato_a.partido.nombre})
 PLAN DE GOBIERNO A:
@@ -211,61 +216,145 @@ CANDIDATO B: {candidato_b.nombre} ({candidato_b.partido.nombre})
 PLAN DE GOBIERNO B:
 {plan_b}
 
-INSTRUCCIONES DE BÚSQUEDA:
-1. "{candidato_a.nombre} propuestas 2026 historial"
-2. "{candidato_b.nombre} propuestas 2026 historial"
+INSTRUCCIONES DE BÚSQUEDA — ejecuta estas búsquedas:
+1. "{candidato_a.nombre} propuestas 2026 historial antecedentes"
+2. "{candidato_b.nombre} propuestas 2026 historial antecedentes"
 
-FORMATO DE RESPUESTA — usa tablas markdown por cada eje temático:
+IMPORTANTE: Responde ÚNICAMENTE con un JSON válido, sin texto adicional,
+sin bloques de código, sin explicaciones. Solo el JSON puro.
 
-## ⚖️ COMPARACIÓN: {candidato_a.nombre} vs {candidato_b.nombre}
+{{
+  "temas": {{
+    "Economía": {{
+      "puntaje_a": 7,
+      "puntaje_b": 6,
+      "ganador": "A",
+      "resumen_a": "propuesta económica de A en 2-3 líneas",
+      "resumen_b": "propuesta económica de B en 2-3 líneas",
+      "analisis_expertos": (
+          "análisis técnico para politólogos, economistas "
+          "en 4-5 líneas con evidencia y fuentes"
+      ),
+      "explicacion_ciudadano": (
+          "explicación simple para el ciudadano en 1-2 "
+          "líneas sin tecnicismos"
+      )
+    }},
+    "Seguridad": {{
+      "puntaje_a": 8,
+      "puntaje_b": 5,
+      "ganador": "B",
+      "resumen_a": "propuesta de seguridad de A en 2-3 líneas",
+      "resumen_b": "propuesta de seguridad de B en 2-3 líneas",
+      "analisis_expertos": "análisis técnico en 4-5 líneas",
+      "explicacion_ciudadano": "explicación simple en 1-2 líneas"
+    }},
+    "Educación": {{
+      "puntaje_a": 6,
+      "puntaje_b": 8,
+      "ganador": "A",
+      "resumen_a": "...",
+      "resumen_b": "...",
+      "analisis_expertos": "...",
+      "explicacion_ciudadano": "..."
+    }},
+    "Salud": {{
+      "puntaje_a": 7,
+      "puntaje_b": 7,
+      "ganador": "empate",
+      "resumen_a": "...",
+      "resumen_b": "...",
+      "analisis_expertos": "...",
+      "explicacion_ciudadano": "..."
+    }},
+    "Transporte": {{
+      "puntaje_a": 5,
+      "puntaje_b": 8,
+      "ganador": "B",
+      "resumen_a": "...",
+      "resumen_b": "...",
+      "analisis_expertos": "...",
+      "explicacion_ciudadano": "..."
+    }},
+    "Tecnología": {{
+      "puntaje_a": 6,
+      "puntaje_b": 7,
+      "ganador": "A",
+      "resumen_a": "...",
+      "resumen_b": "...",
+      "analisis_expertos": "...",
+      "explicacion_ciudadano": "..."
+    }},
+    "Medio Ambiente": {{
+      "puntaje_a": 8,
+      "puntaje_b": 5,
+      "ganador": "A",
+      "resumen_a": "...",
+      "resumen_b": "...",
+      "analisis_expertos": "...",
+      "explicacion_ciudadano": "..."
+    }},
+    "Corrupción": {{
+      "puntaje_a": 4,
+      "puntaje_b": 7,
+      "ganador": "B",
+      "resumen_a": "antecedentes y postura de A",
+      "resumen_b": "antecedentes y postura de B",
+      "analisis_expertos": (
+          "análisis técnico de antecedentes y propuestas "
+          "anticorrupción con fuentes"
+      ),
+      "explicacion_ciudadano": "explicación simple para el ciudadano"
+    }}
+  }},
+  "ganador_general": "A",
+  "puntaje_total_a": 51,
+  "puntaje_total_b": 53,
+  "conclusion_expertos": (
+      "análisis técnico global para politólogos, abogados, "
+      "economistas en 5-6 líneas con evidencia"
+  ),
+  "conclusion_ciudadano": (
+      "resumen simple para el ciudadano promedio en 2-3 "
+      "líneas sin tecnicismos"
+  ),
+  "nota_neutralidad": (
+      "Este análisis es informativo y no constituye "
+      "recomendación de voto"
+  )
+}}
 
-### 💰 ECONOMÍA
-| | {candidato_a.nombre} | {candidato_b.nombre} |
-|---|---|---|
-| **Propuesta** | propuesta en 1-2 líneas | propuesta en 1-2 líneas |
-| **Viabilidad** | Alta/Media/Baja | Alta/Media/Baja |
-| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
+Reglas para los puntajes:
+- Del 1 al 10 basado en concreción, viabilidad y coherencia de propuestas
+- Si no hay propuesta clara en un tema, el puntaje máximo es 4
+- El ganador general es quien tiene mayor suma de puntajes
+- Si la diferencia total es menor a 3 puntos, es empate"""
 
-### 🔒 SEGURIDAD
-| | {candidato_a.nombre} | {candidato_b.nombre} |
-|---|---|---|
-| **Propuesta** | propuesta en 1-2 líneas | propuesta en 1-2 líneas |
-| **Viabilidad** | Alta/Media/Baja | Alta/Media/Baja |
-| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
-
-### 📚 EDUCACIÓN
-| | {candidato_a.nombre} | {candidato_b.nombre} |
-|---|---|---|
-| **Propuesta** | propuesta en 1-2 líneas | propuesta en 1-2 líneas |
-| **Viabilidad** | Alta/Media/Baja | Alta/Media/Baja |
-| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
-
-### 🏥 SALUD
-| | {candidato_a.nombre} | {candidato_b.nombre} |
-|---|---|---|
-| **Propuesta** | propuesta en 1-2 líneas | propuesta en 1-2 líneas |
-| **Viabilidad** | Alta/Media/Baja | Alta/Media/Baja |
-| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
-
-### ⚖️ CORRUPCIÓN
-| | {candidato_a.nombre} | {candidato_b.nombre} |
-|---|---|---|
-| **Postura** | postura en 1-2 líneas | postura en 1-2 líneas |
-| **Antecedentes** | antecedentes relevantes | antecedentes relevantes |
-| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
-
-### 🌿 MEDIO AMBIENTE
-| | {candidato_a.nombre} | {candidato_b.nombre} |
-|---|---|---|
-| **Propuesta** | propuesta en 1-2 líneas | propuesta en 1-2 líneas |
-| **Viabilidad** | Alta/Media/Baja | Alta/Media/Baja |
-| **Diferencia clave** | en qué se diferencia | en qué se diferencia |
-
-### 📊 CONCLUSIÓN
-Párrafo final balanceado. No recomiendas por quién votar."""
-
-    return StreamingResponse(
-        stream_claude(prompt, model="claude-sonnet-4-20250514"),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=4000,
+        tools=[{
+            "type": "web_search_20250305",
+            "name": "web_search"
+        }],
+        messages=[{"role": "user", "content": prompt}]
     )
+
+    texto = ""
+    for block in response.content:
+        if hasattr(block, "text"):
+            texto += block.text
+
+    try:
+        texto_limpio = texto.strip()
+        if texto_limpio.startswith("```"):
+            texto_limpio = texto_limpio.split("```")[1]
+            if texto_limpio.startswith("json"):
+                texto_limpio = texto_limpio[4:]
+        resultado = json.loads(texto_limpio)
+        return resultado
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al procesar respuesta de IA: {str(e)}"
+        )

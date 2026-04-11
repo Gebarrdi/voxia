@@ -309,12 +309,12 @@ export default function App() {
                         <button
                           onClick={(e) => { e.stopPropagation(); analizarCandidato(candidato) }}
                           className="w-full text-xs bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-700">
-                          Analizar con IA →
+                          Análisis de candidato y plan de gobierno →
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); analizarViabilidad(candidato) }}
                           className="w-full text-xs bg-red-700 text-white py-2 rounded-lg hover:bg-red-800 mt-2">
-                          Verificar viabilidad →
+                          Viabilidad de plan de gobierno →
                         </button>
                       </div>
                     </div>
