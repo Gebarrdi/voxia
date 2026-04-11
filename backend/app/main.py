@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.routers import candidatos, temas, comparar, ai
+from app.database import engine
+from app.models.candidato import Base
 
 settings = get_settings()
 
@@ -33,6 +35,12 @@ app.include_router(candidatos.router)
 app.include_router(temas.router)
 app.include_router(comparar.router)
 app.include_router(ai.router)
+
+
+@app.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 
 @app.get("/api/health")
