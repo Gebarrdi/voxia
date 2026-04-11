@@ -182,3 +182,12 @@
     border-right-color: var(--border);
   }
 }
+
+li:empty,
+li:has(> br:only-child) {
+  display: none;
+}
+
+.prose ul li:empty {
+  display: none;
+}

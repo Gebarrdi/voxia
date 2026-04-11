@@ -114,3 +114,21 @@ class Antecedente(Base):
     candidato: Mapped["Candidato"] = relationship(
         back_populates="antecedentes"
     )
+
+
+class CacheAnalisis(Base):
+    __tablename__ = "cache_analisis"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tipo: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )
+    # Para análisis individual: "candidato_id"
+    # Para comparación: "candidato_a_id:candidato_b_id"
+    clave: Mapped[str] = mapped_column(
+        String(100), nullable=False, unique=True
+    )
+    contenido: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime, server_default=func.now()
+    )

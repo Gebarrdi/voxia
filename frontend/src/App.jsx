@@ -24,6 +24,59 @@ export default function App() {
       .catch(err => { console.error(err); setLoading(false) })
   }, [])
 
+  const limpiarMarkdown = (texto) => {
+    if (!texto) return texto
+    let limpio = texto
+
+    const matchEncabezado = limpio.match(/^(#{1,3} )/m)
+    if (matchEncabezado) {
+      const idx = limpio.indexOf(matchEncabezado[0])
+      if (idx > 0) {
+        const antesDelEncabezado = limpio.substring(0, idx)
+        const tieneIntro = /voy a|busco|ahora busco|permíteme|let me|procedo|realiz|analiz|necesito buscar|a continuación|procedere/i.test(antesDelEncabezado)
+        if (tieneIntro) {
+          limpio = limpio.substring(idx).trim()
+        }
+      }
+    }
+
+    limpio = limpio.replace(/^([-*])\s*\n+(\*\*)/gm, '$1 $2')
+    limpio = limpio.replace(/^([-*])\s*\n+([^\n\-*#>])/gm, '$1 $2')
+    limpio = limpio.replace(/^[-*]\s*$/gm, '')
+    limpio = limpio.replace(/^---+\s*$/gm, '')
+    limpio = limpio.replace(/\n{3,}/g, '\n\n')
+
+    return limpio.trim()
+  }
+
+  const textoListo = (texto) => {
+    const limpio = limpiarMarkdown(texto)
+    return limpio && /#{1,3} /.test(limpio) ? limpio : null
+  }
+
+  // ── Helper: POST a un endpoint JSON con timeout ───────────────────────────
+  const fetchJSON = async (url, timeoutMs = 300000) => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        signal: controller.signal
+      })
+      clearTimeout(timeoutId)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return await response.json()
+    } catch (err) {
+      clearTimeout(timeoutId)
+      if (err.name === 'AbortError') {
+        console.warn('Request abortado por timeout')
+      } else {
+        console.error('Error en fetch:', err)
+      }
+      return null
+    }
+  }
+
   const getNombreCorto = (nombre) => {
     const p = nombre.split(" ")
     const segundosNombres = [
@@ -57,16 +110,10 @@ export default function App() {
     setAnalizando(true)
     setTemaExpandido(null)
 
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/ai/comparar/${seleccionados[0].id}/${seleccionados[1].id}`,
-        { method: "POST" }
-      )
-      const data = await response.json()
-      setComparacion(data)
-    } catch (err) {
-      console.error(err)
-    }
+    const data = await fetchJSON(
+      `${import.meta.env.VITE_API_URL || ''}/api/ai/comparar/${seleccionados[0].id}/${seleccionados[1].id}`
+    )
+    if (data) setComparacion(data)
 
     setAnalizando(false)
     setLoadingComparacion(false)
@@ -77,26 +124,11 @@ export default function App() {
     setLoadingTecnico(true)
     setAnalisisTecnico("")
 
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL || ''}/api/ai/analisis-tecnico/${seleccionados[0].id}/${seleccionados[1].id}`,
-      { method: "POST" }
+    const data = await fetchJSON(
+      `${import.meta.env.VITE_API_URL || ''}/api/ai/analisis-tecnico/${seleccionados[0].id}/${seleccionados[1].id}`
     )
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      const chunk = decoder.decode(value)
-      const lines = chunk.split("\n")
-      for (const line of lines) {
-        if (line.startsWith("data: ") && line !== "data: [DONE]") {
-          try {
-            const data = JSON.parse(line.replace("data: ", ""))
-            setAnalisisTecnico(prev => prev + data.texto)
-          } catch {}
-        }
-      }
-    }
+    if (data?.texto) setAnalisisTecnico(data.texto)
+
     setLoadingTecnico(false)
   }
 
@@ -105,26 +137,12 @@ export default function App() {
     setAnalizando(true)
     setAnalisisTexto("")
     setVista("analisis")
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL || ''}/api/ai/pros-contras/${candidato.id}`,
-      { method: "POST" }
+
+    const data = await fetchJSON(
+      `${import.meta.env.VITE_API_URL || ''}/api/ai/pros-contras/${candidato.id}`
     )
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      const chunk = decoder.decode(value)
-      const lines = chunk.split("\n")
-      for (const line of lines) {
-        if (line.startsWith("data: ") && line !== "data: [DONE]") {
-          try {
-            const data = JSON.parse(line.replace("data: ", ""))
-            setAnalisisTexto(prev => prev + data.texto)
-          } catch {}
-        }
-      }
-    }
+    if (data?.texto) setAnalisisTexto(data.texto)
+
     setAnalizando(false)
   }
 
@@ -133,26 +151,12 @@ export default function App() {
     setAnalizando(true)
     setAnalisisTexto("")
     setVista("analisis")
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL || ''}/api/ai/viabilidad/${candidato.id}`,
-      { method: "POST" }
+
+    const data = await fetchJSON(
+      `${import.meta.env.VITE_API_URL || ''}/api/ai/viabilidad/${candidato.id}`
     )
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      const chunk = decoder.decode(value)
-      const lines = chunk.split("\n")
-      for (const line of lines) {
-        if (line.startsWith("data: ") && line !== "data: [DONE]") {
-          try {
-            const data = JSON.parse(line.replace("data: ", ""))
-            setAnalisisTexto(prev => prev + data.texto)
-          } catch {}
-        }
-      }
-    }
+    if (data?.texto) setAnalisisTexto(data.texto)
+
     setAnalizando(false)
   }
 
@@ -193,19 +197,34 @@ export default function App() {
     strong: ({children}) => (
       <strong className="font-semibold text-gray-900">{children}</strong>
     ),
-    p: ({children}) => (
-      <p className="text-sm text-gray-700 leading-relaxed mb-3">{children}</p>
-    ),
-    ul: ({children}) => (
-      <ul className="list-disc list-inside text-sm text-gray-700 mb-3 space-y-1">
-        {children}
-      </ul>
-    ),
+    p: ({children, node}) => {
+      if (node?.parent?.tagName === 'li') {
+        return <span className="text-sm text-gray-700 leading-relaxed">{children}</span>
+      }
+      return <p className="text-sm text-gray-700 leading-relaxed mb-3">{children}</p>
+    },
+    ul: ({children}) => {
+      const filtered = Array.isArray(children)
+        ? children.filter(c => c && c !== '\n')
+        : children
+      return (
+        <ul className="list-disc list-inside text-sm text-gray-700 mb-3 space-y-1">
+          {filtered}
+        </ul>
+      )
+    },
     li: ({children}) => {
-      if (!children) return null
+      const content = Array.isArray(children)
+        ? children.filter(c => c && c !== '\n')
+        : children
+
+      if (!content || (Array.isArray(content) && content.length === 0)) {
+        return null
+      }
+
       return (
         <li className="text-sm text-gray-700 leading-relaxed">
-          {children}
+          {content}
         </li>
       )
     },
@@ -608,25 +627,21 @@ export default function App() {
                     </p>
                   )}
 
-                  {loadingTecnico && analisisTecnico === "" && (
+                  {loadingTecnico && !textoListo(analisisTecnico) && (
                     <p className="text-gray-400 animate-pulse text-sm">
                       Claude está redactando el análisis técnico...
                     </p>
                   )}
 
-                  {analisisTecnico && (
+                  {textoListo(analisisTecnico) && (
                     <div className="prose prose-sm max-w-none">
                       <ReactMarkdown
                         components={mdComponents}
                         remarkPlugins={[remarkGfm]}
                       >
-                        {analisisTecnico}
+                        {textoListo(analisisTecnico)}
                       </ReactMarkdown>
                     </div>
-                  )}
-
-                  {loadingTecnico && analisisTecnico !== "" && (
-                    <span className="inline-block w-2 h-4 bg-red-600 animate-pulse ml-1" />
                   )}
                 </div>
               </div>
@@ -671,21 +686,22 @@ export default function App() {
                   Este análisis es informativo — no constituye recomendación de voto
                 </span>
               </div>
-              {analizando && analisisTexto === "" && (
+
+              {analizando && (
                 <p className="text-gray-400 animate-pulse">
                   Claude está analizando...
                 </p>
               )}
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown
-                  components={mdComponents}
-                  remarkPlugins={[remarkGfm]}
-                >
-                  {analisisTexto}
-                </ReactMarkdown>
-              </div>
-              {analizando && (
-                <span className="inline-block w-2 h-4 bg-red-600 animate-pulse ml-1" />
+
+              {!analizando && textoListo(analisisTexto) && (
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown
+                    components={mdComponents}
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {textoListo(analisisTexto)}
+                  </ReactMarkdown>
+                </div>
               )}
             </div>
           </div>

@@ -5,6 +5,7 @@ import asyncio
 from app.database import engine, Base
 import app.models  # importa todos los modelos para que Base los conozca
 
+
 async def create_tables():
     async with engine.begin() as conn:
         # Crea todas las tablas que hereden de Base
