@@ -1,0 +1,26 @@
+Internal
+postgresql+asyncpg://voxia_db_user:wwiiYXKVn8lvagTEKMYypGL6UPj7Fjx7@dpg-d77blqshg0os73e8tleg-a/voxia_db
+redis://red-d77bn78ule4c73f8mql0:6379
+
+
+
+External
+postgresql://voxia_db_user:wwiiYXKVn8lvagTEKMYypGL6UPj7Fjx7@dpg-d77blqshg0os73e8tleg-a.oregon-postgres.render.com/voxia_db
+
+
+
+
+$env:DATABASE_URL="postgresql+asyncpg://voxia_db_user:wwiiYXKVn8lvagTEKMYypGL6UPj7Fjx7@dpg-d77blqshg0os73e8tleg-a.oregon-postgres.render.com/voxia_db"
+python seed.py
+
+
+cd D:\VoxIA
+git add .
+git commit -m "feat: comparacion de candidatos en tablas 2"
+git push
+
+
+
+git add .
+git commit -m "fix: agregar pypdf a requirements.txt"
+git push
