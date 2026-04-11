@@ -9,7 +9,7 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api': 'http://localhost:8000'  // redirige /api al backend FastAPI
+      '/api': 'http://localhost:5173'  // redirige /api al backend FastAPI
     }
   }
 })

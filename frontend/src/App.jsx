@@ -13,6 +13,9 @@ export default function App() {
   const [analisisTexto, setAnalisisTexto] = useState("")
   const [candidatoAnalisis, setCandidatoAnalisis] = useState(null)
   const [busqueda, setBusqueda] = useState("")
+  const [temaExpandido, setTemaExpandido] = useState(null)
+  const [analisisTecnico, setAnalisisTecnico] = useState("")
+  const [loadingTecnico, setLoadingTecnico] = useState(false)
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL || ''}/api/candidatos/`)
@@ -20,6 +23,21 @@ export default function App() {
       .then(data => { setCandidatos(data); setLoading(false) })
       .catch(err => { console.error(err); setLoading(false) })
   }, [])
+
+  const getNombreCorto = (nombre) => {
+    const p = nombre.split(" ")
+    const segundosNombres = [
+      "Soledad", "Gonsalo", "Jorge", "Helbert",
+      "Bernardo", "Pablo", "Ernesto", "Patrick",
+      "Fernando", "Antonio", "Enrique", "Gilmer",
+      "Carlos", "Darwin", "Alfonso", "Joaquin",
+      "Roy", "Mario", "Davis", "Leon"
+    ]
+    if (p.length >= 3 && segundosNombres.includes(p[1])) {
+      return `${p[0]} ${p[2]}`
+    }
+    return `${p[0]} ${p[1]}`
+  }
 
   const toggleSeleccion = (candidato) => {
     if (seleccionados.find(c => c.id === candidato.id)) {
@@ -35,13 +53,34 @@ export default function App() {
     setVista("comparar")
     setComparacion(null)
     setAnalisisTexto("")
+    setAnalisisTecnico("")
     setAnalizando(true)
+    setTemaExpandido(null)
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || ''}/api/ai/comparar/${seleccionados[0].id}/${seleccionados[1].id}`,
+        { method: "POST" }
+      )
+      const data = await response.json()
+      setComparacion(data)
+    } catch (err) {
+      console.error(err)
+    }
+
+    setAnalizando(false)
+    setLoadingComparacion(false)
+  }
+
+  const verAnalisisTecnico = async () => {
+    if (loadingTecnico || analisisTecnico) return
+    setLoadingTecnico(true)
+    setAnalisisTecnico("")
 
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL || ''}/api/ai/comparar/${seleccionados[0].id}/${seleccionados[1].id}`,
+      `${import.meta.env.VITE_API_URL || ''}/api/ai/analisis-tecnico/${seleccionados[0].id}/${seleccionados[1].id}`,
       { method: "POST" }
     )
-
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     while (true) {
@@ -53,13 +92,12 @@ export default function App() {
         if (line.startsWith("data: ") && line !== "data: [DONE]") {
           try {
             const data = JSON.parse(line.replace("data: ", ""))
-            setAnalisisTexto(prev => prev + data.texto)
+            setAnalisisTecnico(prev => prev + data.texto)
           } catch {}
         }
       }
     }
-    setAnalizando(false)
-    setLoadingComparacion(false)
+    setLoadingTecnico(false)
   }
 
   const analizarCandidato = async (candidato) => {
@@ -122,13 +160,24 @@ export default function App() {
     setVista("lista")
     setComparacion(null)
     setAnalisisTexto("")
+    setAnalisisTecnico("")
     setCandidatoAnalisis(null)
+    setTemaExpandido(null)
   }
 
   const candidatosFiltrados = candidatos.filter(c =>
     c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
     c.partido.nombre.toLowerCase().includes(busqueda.toLowerCase())
   )
+
+  const limpiarCitas = (texto) => {
+    if (!texto) return texto
+    return texto
+      .replace(/<cite[^>]*>/g, '')
+      .replace(/<\/cite>/g, '')
+      .replace(/\\u003ccite[^>]*>/g, '')
+      .replace(/\\u003c\/cite>/g, '')
+  }
 
   const mdComponents = {
     h2: ({children}) => (
@@ -152,38 +201,124 @@ export default function App() {
         {children}
       </ul>
     ),
-    li: ({children}) => (
-      <li className="text-sm text-gray-700 leading-relaxed">{children}</li>
-    ),
-    hr: () => <hr className="border-gray-100 my-4" />,
-    table: ({children}) => (
-      <div className="overflow-x-auto mb-4">
-        <table className="w-full text-sm border-collapse border border-gray-200 rounded-lg">
+    li: ({children}) => {
+      if (!children) return null
+      return (
+        <li className="text-sm text-gray-700 leading-relaxed">
           {children}
-        </table>
+        </li>
+      )
+    },
+  }
+
+  const iconosTema = {
+    "Economía": "💰",
+    "Seguridad": "🔒",
+    "Educación": "📚",
+    "Salud": "🏥",
+    "Transporte": "🚆",
+    "Medio Ambiente": "🌿",
+    "Corrupción": "⚖️",
+  }
+
+  const BarraComparacion = ({ tema, datos, nombreA, nombreB }) => {
+    const pA = datos.puntaje_a
+    const pB = datos.puntaje_b
+    const ganador = datos.ganador
+
+    return (
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-3">
+        <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{iconosTema[tema] || "📊"}</span>
+            <span className="font-semibold text-gray-800">{tema}</span>
+          </div>
+          {ganador === "A" && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+              🏆 Ventaja: {getNombreCorto(nombreA)}
+            </span>
+          )}
+          {ganador === "B" && (
+            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
+              🏆 Ventaja: {getNombreCorto(nombreB)}
+            </span>
+          )}
+          {ganador === "empate" && (
+            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
+              🤝 Empate
+            </span>
+          )}
+        </div>
+
+        <div className="px-5 py-4">
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-gray-600 truncate max-w-48">
+                {getNombreCorto(nombreA)}
+              </span>
+              <span className="text-xs font-bold text-blue-600 ml-2">
+                {pA}/10
+              </span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-6 relative">
+              <div
+                className="bg-blue-500 h-6 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                style={{ width: `${pA * 10}%` }}
+              >
+                {pA >= 3 && (
+                  <span className="text-white text-xs font-bold">{pA}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-gray-600 truncate max-w-48">
+                {getNombreCorto(nombreB)}
+              </span>
+              <span className="text-xs font-bold text-red-600 ml-2">
+                {pB}/10
+              </span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-6 relative">
+              <div
+                className="bg-red-500 h-6 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                style={{ width: `${pB * 10}%` }}
+              >
+                {pB >= 3 && (
+                  <span className="text-white text-xs font-bold">{pB}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mt-3 text-xs text-gray-600">
+            <div className="bg-blue-50 rounded-lg p-2">
+              <p className="font-medium text-blue-700 mb-1">
+                {getNombreCorto(nombreA)}:
+              </p>
+              <p className="leading-relaxed">
+                {limpiarCitas(datos.resumen_a)}
+              </p>
+            </div>
+            <div className="bg-red-50 rounded-lg p-2">
+              <p className="font-medium text-red-700 mb-1">
+                {getNombreCorto(nombreB)}:
+              </p>
+              <p className="leading-relaxed">
+                {limpiarCitas(datos.resumen_b)}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-    ),
-    thead: ({children}) => (
-      <thead className="bg-gray-800 text-white">{children}</thead>
-    ),
-    tbody: ({children}) => (
-      <tbody className="divide-y divide-gray-100">{children}</tbody>
-    ),
-    tr: ({children}) => (
-      <tr className="hover:bg-gray-50">{children}</tr>
-    ),
-    th: ({children}) => (
-      <th className="px-4 py-2 text-left text-xs font-medium">{children}</th>
-    ),
-    td: ({children}) => (
-      <td className="px-4 py-2 text-gray-700 align-top text-xs">{children}</td>
-    ),
+    )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* Header */}
       <header className="bg-red-700 text-white py-6 px-8 shadow-lg">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
@@ -218,7 +353,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Buscador */}
             <div className="mb-6">
               <input type="text"
                 placeholder="Buscar por nombre o partido..."
@@ -228,7 +362,6 @@ export default function App() {
               />
             </div>
 
-            {/* Seleccionados */}
             {seleccionados.length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                 <p className="text-red-700 text-sm font-medium mb-2">
@@ -236,7 +369,8 @@ export default function App() {
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   {seleccionados.map(c => (
-                    <span key={c.id} className="bg-red-700 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <span key={c.id}
+                      className="bg-red-700 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
                       {c.foto_url && (
                         <img src={c.foto_url} alt={c.nombre}
                           className="w-5 h-5 rounded-full object-cover object-top" />
@@ -248,31 +382,29 @@ export default function App() {
               </div>
             )}
 
-            {/* Grid candidatos */}
             {loading ? (
               <p className="text-gray-500">Cargando candidatos...</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {candidatosFiltrados.map(candidato => {
-                  const estaSeleccionado = seleccionados.find(c => c.id === candidato.id)
+                  const estaSeleccionado = seleccionados.find(
+                    c => c.id === candidato.id
+                  )
                   return (
-                    <div key={candidato.id} onClick={() => toggleSeleccion(candidato)}
+                    <div key={candidato.id}
+                      onClick={() => toggleSeleccion(candidato)}
                       className={`bg-white rounded-xl overflow-hidden shadow-sm border-2 cursor-pointer transition-all
                         ${estaSeleccionado
                           ? "border-red-600"
                           : "border-gray-100 hover:border-red-300 hover:shadow-md"
                         }`}
                     >
-                      {/* Foto */}
                       <div className="w-full h-48 bg-white overflow-hidden relative">
                         {candidato.foto_url ? (
-                          <img
-                            src={candidato.foto_url}
+                          <img src={candidato.foto_url}
                             alt={candidato.nombre}
                             className="w-full h-full object-contain object-top"
-                            onError={(e) => {
-                              e.target.style.display = 'none'
-                            }}
+                            onError={(e) => { e.target.style.display = 'none' }}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-red-50">
@@ -287,16 +419,13 @@ export default function App() {
                           </div>
                         )}
                       </div>
-
-                      {/* Info */}
                       <div className="p-4">
                         <h3 className="font-semibold text-gray-900 text-sm text-center mb-2 leading-tight">
                           {candidato.nombre}
                         </h3>
                         <div className="flex items-center justify-center gap-2 mb-3">
                           {candidato.partido.logo_url && (
-                            <img
-                              src={candidato.partido.logo_url}
+                            <img src={candidato.partido.logo_url}
                               alt={candidato.partido.nombre}
                               className="w-6 h-6 object-contain flex-shrink-0"
                               onError={(e) => e.target.style.display = 'none'}
@@ -307,12 +436,18 @@ export default function App() {
                           </p>
                         </div>
                         <button
-                          onClick={(e) => { e.stopPropagation(); analizarCandidato(candidato) }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            analizarCandidato(candidato)
+                          }}
                           className="w-full text-xs bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-700">
                           Análisis de candidato y plan de gobierno →
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); analizarViabilidad(candidato) }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            analizarViabilidad(candidato)
+                          }}
                           className="w-full text-xs bg-red-700 text-white py-2 rounded-lg hover:bg-red-800 mt-2">
                           Viabilidad de plan de gobierno →
                         </button>
@@ -332,62 +467,170 @@ export default function App() {
         {vista === "comparar" && (
           <div>
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-white rounded-xl p-4 shadow-sm flex flex-col items-center text-center">
+              <div className="bg-white rounded-xl p-4 shadow-sm flex flex-col items-center text-center border-t-4 border-blue-500">
                 {seleccionados[0]?.foto_url && (
                   <img src={seleccionados[0].foto_url}
                     alt={seleccionados[0].nombre}
                     className="w-24 h-24 object-contain object-top mb-2" />
                 )}
-                <p className="font-semibold text-red-700 text-sm">{seleccionados[0]?.nombre}</p>
+                <p className="font-semibold text-blue-700 text-sm">
+                  {seleccionados[0]?.nombre}
+                </p>
                 <div className="flex items-center gap-1 mt-1">
                   {seleccionados[0]?.partido?.logo_url && (
                     <img src={seleccionados[0].partido.logo_url}
                       className="w-4 h-4 object-contain" />
                   )}
-                  <p className="text-xs text-gray-500">{seleccionados[0]?.partido?.nombre}</p>
+                  <p className="text-xs text-gray-500">
+                    {seleccionados[0]?.partido?.nombre}
+                  </p>
                 </div>
+                {comparacion && (
+                  <div className="mt-2 bg-blue-50 rounded-lg px-3 py-1">
+                    <span className="text-lg font-bold text-blue-600">
+                      {comparacion.puntaje_total_a}
+                    </span>
+                    <span className="text-xs text-gray-500"> pts</span>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-center font-bold text-2xl text-gray-300">
-                VS
+
+              <div className="flex flex-col items-center justify-center">
+                <span className="font-bold text-2xl text-gray-300">VS</span>
+                {comparacion && (
+                  <div className="mt-2 text-center">
+                    {comparacion.ganador_general === "A" ? (
+                      <div className="bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full font-bold">
+                        🏆 Gana {getNombreCorto(seleccionados[0]?.nombre || "")}
+                      </div>
+                    ) : comparacion.ganador_general === "B" ? (
+                      <div className="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-bold">
+                        🏆 Gana {getNombreCorto(seleccionados[1]?.nombre || "")}
+                      </div>
+                    ) : (
+                      <div className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full font-bold">
+                        🤝 Empate
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm flex flex-col items-center text-center">
+
+              <div className="bg-white rounded-xl p-4 shadow-sm flex flex-col items-center text-center border-t-4 border-red-500">
                 {seleccionados[1]?.foto_url && (
                   <img src={seleccionados[1].foto_url}
                     alt={seleccionados[1].nombre}
                     className="w-24 h-24 object-contain object-top mb-2" />
                 )}
-                <p className="font-semibold text-red-700 text-sm">{seleccionados[1]?.nombre}</p>
+                <p className="font-semibold text-red-700 text-sm">
+                  {seleccionados[1]?.nombre}
+                </p>
                 <div className="flex items-center gap-1 mt-1">
                   {seleccionados[1]?.partido?.logo_url && (
                     <img src={seleccionados[1].partido.logo_url}
                       className="w-4 h-4 object-contain" />
                   )}
-                  <p className="text-xs text-gray-500">{seleccionados[1]?.partido?.nombre}</p>
+                  <p className="text-xs text-gray-500">
+                    {seleccionados[1]?.partido?.nombre}
+                  </p>
                 </div>
+                {comparacion && (
+                  <div className="mt-2 bg-red-50 rounded-lg px-3 py-1">
+                    <span className="text-lg font-bold text-red-600">
+                      {comparacion.puntaje_total_b}
+                    </span>
+                    <span className="text-xs text-gray-500"> pts</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-medium">
-                  Generado por Claude AI
-                </span>
-                <span className="text-gray-400 text-xs">
-                  Análisis informativo — no constituye recomendación de voto
-                </span>
+            {loadingComparacion && !comparacion && (
+              <div className="bg-white rounded-xl p-8 text-center shadow-sm">
+                <p className="text-gray-400 animate-pulse text-sm">
+                  Claude está analizando los planes de gobierno...
+                </p>
               </div>
-              {loadingComparacion && analisisTexto === "" && (
-                <p className="text-gray-400 animate-pulse">Claude está comparando...</p>
-              )}
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown components={mdComponents} remarkPlugins={[remarkGfm]}>
-                  {analisisTexto}
-                </ReactMarkdown>
+            )}
+
+            {comparacion && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-medium">
+                    Generado por Claude AI
+                  </span>
+                  <span className="text-gray-400 text-xs">
+                    Análisis informativo — no constituye recomendación de voto
+                  </span>
+                </div>
+
+                {Object.entries(comparacion.temas).map(([tema, datos]) => (
+                  <BarraComparacion
+                    key={tema}
+                    tema={tema}
+                    datos={datos}
+                    nombreA={seleccionados[0]?.nombre || ""}
+                    nombreB={seleccionados[1]?.nombre || ""}
+                  />
+                ))}
+
+                {comparacion.resumen_ganador && (
+                  <div className="bg-white rounded-xl shadow-sm p-4 mt-4 border-l-4 border-yellow-400">
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {limpiarCitas(comparacion.resumen_ganador)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-2 italic">
+                      {comparacion.nota_neutralidad}
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-800 text-base">
+                      🎓 Análisis técnico completo
+                    </h3>
+                    {!analisisTecnico && !loadingTecnico && (
+                      <button
+                        onClick={verAnalisisTecnico}
+                        className="bg-gray-800 text-white text-xs px-4 py-2 rounded-lg hover:bg-gray-700"
+                      >
+                        Generar análisis técnico →
+                      </button>
+                    )}
+                  </div>
+
+                  {!analisisTecnico && !loadingTecnico && (
+                    <p className="text-sm text-gray-400">
+                      Análisis técnico riguroso por tema con datos
+                      estadísticos, comparaciones internacionales
+                      y evaluación de antecedentes. Se genera bajo demanda.
+                    </p>
+                  )}
+
+                  {loadingTecnico && analisisTecnico === "" && (
+                    <p className="text-gray-400 animate-pulse text-sm">
+                      Claude está redactando el análisis técnico...
+                    </p>
+                  )}
+
+                  {analisisTecnico && (
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown
+                        components={mdComponents}
+                        remarkPlugins={[remarkGfm]}
+                      >
+                        {analisisTecnico}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+
+                  {loadingTecnico && analisisTecnico !== "" && (
+                    <span className="inline-block w-2 h-4 bg-red-600 animate-pulse ml-1" />
+                  )}
+                </div>
               </div>
-              {analizando && (
-                <span className="inline-block w-2 h-4 bg-red-600 animate-pulse ml-1" />
-              )}
-            </div>
+            )}
           </div>
         )}
 
@@ -429,10 +672,15 @@ export default function App() {
                 </span>
               </div>
               {analizando && analisisTexto === "" && (
-                <p className="text-gray-400 animate-pulse">Claude está analizando...</p>
+                <p className="text-gray-400 animate-pulse">
+                  Claude está analizando...
+                </p>
               )}
               <div className="prose prose-sm max-w-none">
-                <ReactMarkdown components={mdComponents} remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown
+                  components={mdComponents}
+                  remarkPlugins={[remarkGfm]}
+                >
                   {analisisTexto}
                 </ReactMarkdown>
               </div>
